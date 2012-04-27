@@ -3,9 +3,9 @@
 // Format class ---------------------------------------------------------------
 
 type Read = Read with
+  static member (?<-) (yaml: string, _Format: Read, _: 'a) = failwith ""
   static member (?<-) (yaml: string, _Format: Read, _: int) = int yaml
   static member (?<-) (yaml: string, _Format: Read, _: string) = yaml
-  static member inline (?<-) (yaml: string, _Format: Read, _: ^a) = failwith ""
 
 type Write = Write with
   static member (?<-) (_, _Format: Write, i: int) = string i
