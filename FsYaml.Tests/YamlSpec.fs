@@ -21,16 +21,16 @@ module 文字列 =
     |> It should equal yaml
     |> Verify
 
-module 独自の型 =
-  type t = Hoge | Piyo with
-    static member (?<-) (yaml: string, _Format: Yaml.Read, _: t) =
-      if yaml.ToLower() = "hoge" then Hoge else Piyo
-
-  [<Example("HoGE", true)>]
-  [<Example("piyo", false)>]
-  [<Example("foo", false)>]
-  let 独自の型に独自の変換を定義できる (yaml, isHoge) =
-    Given yaml
-    |> When (fun yaml -> let r: t = Yaml.load yaml in r)
-    |> It should equal (if isHoge then Hoge else Piyo)
-    |> Verify
+//module 独自の型 =
+//  type t = Hoge | Piyo with
+//    static member (?<-) (yaml: string, _Format: Yaml.Read, _: t) =
+//      if yaml.ToLower() = "hoge" then Hoge else Piyo
+//
+//  [<Example("HoGE", true)>]
+//  [<Example("piyo", false)>]
+//  [<Example("foo", false)>]
+//  let 独自の型に独自の変換を定義できる (yaml, isHoge) =
+//    Given yaml
+//    |> When (fun yaml -> let r: t = Yaml.load yaml in r)
+//    |> It should equal (if isHoge then Hoge else Piyo)
+//    |> Verify
