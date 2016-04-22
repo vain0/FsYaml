@@ -359,4 +359,10 @@ let optionDef = {
       represent valueType values.[0]
 }
 
-let defaultDefinitions = [ intDef; int64Def; floatDef; stringDef; boolDef; decimalDef; datetimeDef; timespanDef; recordDef; tupleDef; listDef; setDef; mapDef; arrayDef; seqDef; optionDef; unionDef ]
+let yamlObjectDef = {
+  Accept = (=) typeof<YamlObject>
+  Construct = fun _ _ yaml -> yaml :> obj
+  Represent = fun _ _ obj -> (obj :?> YamlObject)
+}
+
+let defaultDefinitions = [ intDef; int64Def; floatDef; stringDef; boolDef; decimalDef; datetimeDef; timespanDef; recordDef; tupleDef; listDef; setDef; mapDef; arrayDef; seqDef; optionDef; yamlObjectDef; unionDef ]

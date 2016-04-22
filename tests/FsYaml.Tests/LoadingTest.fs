@@ -451,7 +451,22 @@ module LoadRecordTest =
         let actual = Yaml.load<WithOption> yaml
         do! actual |> should equal { A = 1; B = None }
       }
-   
+
+module LoadYamlObjectTest =
+  open FsYaml.Representation
+  open FsYaml.RepresentationTypes
+
+  let ``YamlObject型に変換できる`` = test {
+    let yaml = "[ [], 'a' ]"
+    let actual = Yaml.load yaml
+    let expected =
+      Sequence
+        ([ Sequence ([], Some { Line = 1; Column = 3 })
+           Scalar (NonPlain "a", Some { Line = 1; Column = 7 })]
+        , Some {Line = 1; Column = 1})
+    do! actual |> should equal expected
+    }
+
 module LoadCustomTypeTest =
   open FsYaml.NativeTypes
   open FsYaml.CustomTypeDefinition

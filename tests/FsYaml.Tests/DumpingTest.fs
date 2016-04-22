@@ -124,6 +124,11 @@ module DumpTest =
     do! actual |> should equal null'
   }
 
+  let ``YamlObjectを変換できる`` = test {
+    let actual = represent (plain "a")
+    do! actual |> should equal (plain "a")
+  }
+
 module DumpUnionTest =
   type TestUnion =
     | NoValue
