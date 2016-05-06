@@ -44,7 +44,6 @@ FieldD:
     400: 200
     500: 250
   FieldC: "abcdefghijk"
-  FieldD: null
 """
   do! actual |> should equal expected
 }

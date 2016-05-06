@@ -100,16 +100,26 @@ module RecordConstructor =
       FSharpValue.MakeRecord(t, values)
     | otherwise -> raise (mustBeMapping t otherwise)
 
+module RecordRepresenter =
+  open System.Reflection
+  open RecordConstructor
+
+  /// Returns the default value as an YamlObject if the field can be omitted in YAML
+  let tryRepresentDefaultValue (represent: RecursiveRepresenter) (field: PropertyInfo): option<YamlObject> =
+    field |> tryGetDefaultValue |> Option.map (represent field.PropertyType)
+
 let recordDef = {
   Accept = (fun t -> FSharpType.IsRecord(t))
   Construct = RecordConstructor.construct
   Represent = fun represent t obj ->
     let values =
       FSharpType.GetRecordFields(t)
-      |> Seq.map (fun field ->
+      |> Seq.choose (fun field ->
         let name = Scalar (Plain field.Name, None)
         let value = represent field.PropertyType (field.GetValue(obj))
-        (name, value)
+        if Some value = RecordRepresenter.tryRepresentDefaultValue represent field
+        then None  // Omit if it's the default value of the field
+        else Some (name, value)
       )
       |> Map.ofSeq
     Mapping (values, None)

@@ -124,6 +124,19 @@ module DumpTest =
     do! actual |> should equal null'
   }
 
+module DumpRecordTest =
+  open System
+
+  type TestRecord =
+    { FieldA: int; FieldB: option<int> }
+  with
+    static member DefaultFieldA = -1
+
+  let ``省略可能なフィールドを出力しない`` = test {
+      let actual = represent { FieldA = -1; FieldB = None }
+      do! actual |> should equal (mapping [ ])
+    }
+
 module DumpUnionTest =
   type TestUnion =
     | NoValue
