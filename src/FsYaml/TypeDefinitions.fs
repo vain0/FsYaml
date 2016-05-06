@@ -215,6 +215,8 @@ let seqDef = {
 }
 
 module UnionConstructor =
+  open Attributes
+
   let makeUnion (union: UnionCaseInfo) values = FSharpValue.MakeUnion(union, Seq.toArray values)
 
   let noFieldCase yaml (union: UnionCaseInfo) =
@@ -272,19 +274,45 @@ module UnionConstructor =
       )
     | _ -> None
 
-  let tryConstruct construct' yaml (union: UnionCaseInfo) =
-    let fields = union.GetFields()
-    match fields.Length with
-    | 0 -> noFieldCase yaml union
-    | 1 -> oneFieldCase construct' yaml union
-    | _ -> manyFieldsCase construct' yaml union
+  let noFieldCaseTagless yaml union =
+    match yaml with
+    | Null _ -> makeUnion union [] |> Some
+    | _ -> None
 
-  let construct construct' t yaml =
-    match FSharpType.GetUnionCases(t) |> Seq.tryPick (tryConstruct construct' yaml) with
+  let oneFieldCaseTagless construct' yaml (union: UnionCaseInfo) =
+    let fields = union.GetFields()
+    try makeUnion union [construct' fields.[0].PropertyType yaml] |> Some
+    with | _ -> None
+
+  let manyFieldsCaseTagless  construct' yaml union =
+    match yaml with
+    | Sequence (sequence, _) ->
+        try caseWithFields construct' union sequence yaml |> Some
+        with | _ -> None
+    | _ -> None
+
+  let tryConstruct isTagless construct' yaml (union: UnionCaseInfo) =
+    let fields = union.GetFields()
+    if isTagless then
+      match fields.Length with
+      | 0 -> noFieldCaseTagless yaml union
+      | 1 -> oneFieldCaseTagless construct' yaml union
+      | _ -> manyFieldsCaseTagless construct' yaml union
+    else
+      match fields.Length with
+      | 0 -> noFieldCase yaml union
+      | 1 -> oneFieldCase construct' yaml union
+      | _ -> manyFieldsCase construct' yaml union
+
+  let construct construct' (t: Type) yaml =
+    let isTagless = Attribute.tryGetCustomAttribute<TaglessUnionAttribute>(t) |> Option.isSome
+    match FSharpType.GetUnionCases(t) |> Seq.tryPick (tryConstruct isTagless construct' yaml) with
     | Some x -> x
     | None -> raise (FsYamlException.WithYaml(yaml, Resources.getString "unionCaseNotFound", Type.print t))
 
 module UnionRepresenter =
+  open Attributes
+
   let caseName (union: UnionCaseInfo) = Scalar (Plain union.Name, None)
 
   let oneField represent (union: UnionCaseInfo) (value: obj) =
@@ -324,15 +352,28 @@ module UnionRepresenter =
     let fieldMapping = Mapping (values, None)
     Mapping (Map.ofList [ name, fieldMapping ], None)
 
+  let manyFieldTagless represent (union: UnionCaseInfo) values =
+    let fields = union.GetFields()
+    // Represent as a tuple
+    let tupleType = FSharpType.MakeTupleType [| for f in fields -> f.PropertyType |]
+    in represent tupleType (FSharpValue.MakeTuple(values, tupleType))
+
   let represent (represent: RecursiveRepresenter) (t: Type) (obj: obj) =
     let union, values = FSharpValue.GetUnionFields(obj, t)
-    if isNamedFieldCase union then
-      namedField represent union values
-    else
+    let isTagless = Attribute.tryGetCustomAttribute<TaglessUnionAttribute>(t) |> Option.isSome
+    if isTagless then
       match values.Length with
-      | 0 -> caseName union
-      | 1 -> oneField represent union values.[0]
-      | _ -> manyFields represent union values 
+      | 0 -> Null None
+      | 1 -> represent (union.GetFields().[0].PropertyType) values.[0]
+      | _ -> manyFieldTagless represent union values
+    else
+      if isNamedFieldCase union then
+        namedField represent union values
+      else
+        match values.Length with
+        | 0 -> caseName union
+        | 1 -> oneField represent union values.[0]
+        | _ -> manyFields represent union values 
 
 let unionDef = {
   Accept = fun t -> FSharpType.IsUnion(t)

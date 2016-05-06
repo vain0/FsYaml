@@ -357,6 +357,26 @@ module LoadUnionTest =
     do! actual |> should equal (HalfNamedFieldCaseB (1, 2))
   }
 
+  [<Attributes.TaglessUnion>]
+  type TaglessCase =
+    | TaglessCase0
+    | TaglessCase1 of int
+    | TaglessCase2 of int * string
+    | TaglessCaseRec of list<TaglessCase>
+
+  let ``タグなし判別共用体のケースを変換できる`` =
+    let body (yaml, expected) = test {
+      let actual = Yaml.load<TaglessCase> yaml
+      do! actual |> should equal expected
+    }
+    parameterize {
+      case ("null", TaglessCase0)
+      case ("1", TaglessCase1 1)
+      case ("[1, 'a']", TaglessCase2 (1, "a"))
+      case ("[1, []]", TaglessCaseRec ([TaglessCase1 1; TaglessCaseRec []]))
+      run body
+    }
+
   [<CompilationRepresentation(CompilationRepresentationFlags.UseNullAsTrueValue)>]
   type UseNullAsTrueValueCase = NullCase | ValueCase1 of int | ValueCase2 of string
     

@@ -94,3 +94,7 @@ module NativeTypes =
     /// オブジェクトからYamlに変換します。
     Represent: RecursiveRepresenter -> Representer
   }
+
+module Attributes =
+  type TaglessUnionAttribute() =
+    inherit Attribute()
