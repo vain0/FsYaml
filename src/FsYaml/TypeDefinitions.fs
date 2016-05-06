@@ -279,6 +279,11 @@ module UnionConstructor =
     | 1 -> oneFieldCase construct' yaml union
     | _ -> manyFieldsCase construct' yaml union
 
+  let construct construct' t yaml =
+    match FSharpType.GetUnionCases(t) |> Seq.tryPick (tryConstruct construct' yaml) with
+    | Some x -> x
+    | None -> raise (FsYamlException.WithYaml(yaml, Resources.getString "unionCaseNotFound", Type.print t))
+
 module UnionRepresenter =
   let caseName (union: UnionCaseInfo) = Scalar (Plain union.Name, None)
 
@@ -331,10 +336,7 @@ module UnionRepresenter =
 
 let unionDef = {
   Accept = fun t -> FSharpType.IsUnion(t)
-  Construct = fun construct' t yaml ->
-    match FSharpType.GetUnionCases(t) |> Seq.tryPick (UnionConstructor.tryConstruct construct' yaml) with
-    | Some x -> x
-    | None -> raise (FsYamlException.WithYaml(yaml, Resources.getString "unionCaseNotFound", Type.print t))
+  Construct = UnionConstructor.construct
   Represent = UnionRepresenter.represent
 }
 
