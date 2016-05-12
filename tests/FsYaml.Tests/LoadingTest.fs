@@ -374,6 +374,7 @@ module LoadUnionTest =
       case ("1", InferCase1 1)
       case ("[1, 'a']", InferCase2 (1, "a"))
       case ("[1, []]", InferCaseRec ([InferCase1 1; InferCaseRec []]))
+      case ("[1, {InferCase1: 2}]", InferCaseRec ([InferCase1 1; InferCase1 2]))
       run body
     }
 

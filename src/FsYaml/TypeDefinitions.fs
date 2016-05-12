@@ -293,16 +293,19 @@ module UnionConstructor =
 
   let tryConstruct infers construct' yaml (union: UnionCaseInfo) =
     let fields = union.GetFields()
+    let doWithoutInference () =
+      match fields.Length with
+      | 0 -> noFieldCase yaml union
+      | 1 -> oneFieldCase construct' yaml union
+      | _ -> manyFieldsCase construct' yaml union
     if infers then
       match fields.Length with
       | 0 -> noFieldCaseTagless yaml union
       | 1 -> oneFieldCaseTagless construct' yaml union
       | _ -> manyFieldsCaseTagless construct' yaml union
+      |> Option.orElse doWithoutInference
     else
-      match fields.Length with
-      | 0 -> noFieldCase yaml union
-      | 1 -> oneFieldCase construct' yaml union
-      | _ -> manyFieldsCase construct' yaml union
+      doWithoutInference ()
 
   let construct construct' (t: Type) yaml =
     let infers = Attribute.tryGetCustomAttribute<InferUnionCaseAttribute>(t) |> Option.isSome

@@ -120,6 +120,11 @@ module Seq =
 module Option =
   let filter f = Option.bind (fun x -> if f x then Some x else None)
 
+  let orElse f self =
+    if self |> Option.isSome
+    then self
+    else f ()
+
 let fsharpAsembly = typedefof<list<_>>.Assembly
 
 module ObjectElementSeq =
