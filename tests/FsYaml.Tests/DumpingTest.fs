@@ -157,21 +157,21 @@ module DumpUnionTest =
     do! actual |> should equal (mapping [ (plain "NamedFields", mapping [ (plain "fieldA", plain "3"); (plain "fieldB", nonPlain "abc") ]) ])
   }
 
-  [<Attributes.TaglessUnion>]
-  type TaglessCase =
-    | TaglessCase0
-    | TaglessCase1 of int
-    | TaglessCase2 of int * string
-    | TaglessCaseRec of list<TaglessCase>
+  [<Attributes.InferUnionCase>]
+  type InferCase =
+    | InferCase0
+    | InferCase1 of int
+    | InferCase2 of int * string
+    | InferCaseRec of list<InferCase>
 
-  let ``タグなし判別共用体を変換できる`` =
+  let ``ユニオンケース推論を適用して変換できる`` =
     let body (value, expected) = test {
       let actual = represent value
       do! actual |> should equal expected
     }
     parameterize {
-      case (TaglessCase0, null')
-      case (TaglessCase1 1, plain "1")
-      case (TaglessCase2 (1, "a"), sequence [plain "1"; nonPlain "a"])
+      case (InferCase0, null')
+      case (InferCase1 1, plain "1")
+      case (InferCase2 (1, "a"), sequence [plain "1"; nonPlain "a"])
       run body
     }

@@ -291,9 +291,9 @@ module UnionConstructor =
         with | _ -> None
     | _ -> None
 
-  let tryConstruct isTagless construct' yaml (union: UnionCaseInfo) =
+  let tryConstruct infers construct' yaml (union: UnionCaseInfo) =
     let fields = union.GetFields()
-    if isTagless then
+    if infers then
       match fields.Length with
       | 0 -> noFieldCaseTagless yaml union
       | 1 -> oneFieldCaseTagless construct' yaml union
@@ -305,8 +305,8 @@ module UnionConstructor =
       | _ -> manyFieldsCase construct' yaml union
 
   let construct construct' (t: Type) yaml =
-    let isTagless = Attribute.tryGetCustomAttribute<TaglessUnionAttribute>(t) |> Option.isSome
-    match FSharpType.GetUnionCases(t) |> Seq.tryPick (tryConstruct isTagless construct' yaml) with
+    let infers = Attribute.tryGetCustomAttribute<InferUnionCaseAttribute>(t) |> Option.isSome
+    match FSharpType.GetUnionCases(t) |> Seq.tryPick (tryConstruct infers construct' yaml) with
     | Some x -> x
     | None -> raise (FsYamlException.WithYaml(yaml, Resources.getString "unionCaseNotFound", Type.print t))
 
@@ -360,8 +360,8 @@ module UnionRepresenter =
 
   let represent (represent: RecursiveRepresenter) (t: Type) (obj: obj) =
     let union, values = FSharpValue.GetUnionFields(obj, t)
-    let isTagless = Attribute.tryGetCustomAttribute<TaglessUnionAttribute>(t) |> Option.isSome
-    if isTagless then
+    let infers = Attribute.tryGetCustomAttribute<InferUnionCaseAttribute>(t) |> Option.isSome
+    if infers then
       match values.Length with
       | 0 -> Null None
       | 1 -> represent (union.GetFields().[0].PropertyType) values.[0]

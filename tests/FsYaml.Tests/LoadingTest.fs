@@ -357,23 +357,23 @@ module LoadUnionTest =
     do! actual |> should equal (HalfNamedFieldCaseB (1, 2))
   }
 
-  [<Attributes.TaglessUnion>]
-  type TaglessCase =
-    | TaglessCase0
-    | TaglessCase1 of int
-    | TaglessCase2 of int * string
-    | TaglessCaseRec of list<TaglessCase>
+  [<Attributes.InferUnionCaseAttribute>]
+  type InferCase =
+    | InferCase0
+    | InferCase1 of int
+    | InferCase2 of int * string
+    | InferCaseRec of list<InferCase>
 
-  let ``タグなし判別共用体のケースを変換できる`` =
+  let ``ユニオンケース推論を適用して変換できる`` =
     let body (yaml, expected) = test {
-      let actual = Yaml.load<TaglessCase> yaml
+      let actual = Yaml.load<InferCase> yaml
       do! actual |> should equal expected
     }
     parameterize {
-      case ("null", TaglessCase0)
-      case ("1", TaglessCase1 1)
-      case ("[1, 'a']", TaglessCase2 (1, "a"))
-      case ("[1, []]", TaglessCaseRec ([TaglessCase1 1; TaglessCaseRec []]))
+      case ("null", InferCase0)
+      case ("1", InferCase1 1)
+      case ("[1, 'a']", InferCase2 (1, "a"))
+      case ("[1, []]", InferCaseRec ([InferCase1 1; InferCaseRec []]))
       run body
     }
 

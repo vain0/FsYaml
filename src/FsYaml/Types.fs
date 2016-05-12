@@ -96,5 +96,5 @@ module NativeTypes =
   }
 
 module Attributes =
-  type TaglessUnionAttribute() =
+  type InferUnionCaseAttribute() =
     inherit Attribute()
