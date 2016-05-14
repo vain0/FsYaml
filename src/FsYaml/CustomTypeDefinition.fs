@@ -26,6 +26,27 @@ let mustBeSequence t actual = FsYamlException.WithYaml(actual, Resources.getStri
 /// <param name="actual">実際のYaml</param>
 let mustBeMapping t actual = FsYamlException.WithYaml(actual, Resources.getString "mustBeMapping", Type.print t, YamlObject.nodeTypeName actual)
 
+type internal ScalarPreference =
+  | PrefersPlain
+  | PrefersNonPlain
+
+/// スカラー値とスカラー形式の好みに基づいて、値に存在の度合いを付加します。
+let internal fuzzyFromScalar preference s x =
+  match (s, preference) with
+  | (Plain _, PrefersPlain)
+  | (NonPlain _, PrefersNonPlain) -> Fuzzy.result x
+  | (Plain _, PrefersNonPlain)
+  | (NonPlain _, PrefersPlain) -> Fuzzy.create 0.5 x
+
+/// <summary>
+/// <c>YamlObject.Scalar</c>からオブジェクトを生成します。
+/// Plain/NonPlain形式の好みに応じて、変換結果の好ましさを計算します。
+/// </summary>
+let internal fuzzyConstructFromScalar preference f = fun _ _ t yaml ->
+  match yaml with
+  | Scalar (s, _) -> Scalar.value s |> f |> box |> fuzzyFromScalar preference s
+  | otherwise -> raise (mustBeScalar t otherwise)
+
 /// <summary>
 /// <c>YamlObject.Scalar</c>からオブジェクトを生成します。
 /// </summary>
@@ -55,6 +76,16 @@ let representSeqAsSequence = fun represent t obj ->
 
 /// Nullの可能性がある値のConstructor/Representerを提供します。
 module MaybeNull =
+  /// <summary>
+  /// <c>YamlObject.Scalar</c>からオブジェクトを生成します。値が<c>YamlObject.Null</c>の場合はnullを返します。
+  /// </summary>
+  let internal fuzzyConstructFromScalar preference f = fun _ t yaml ->
+    match yaml with
+    | Scalar (s, _) ->
+      Scalar.value s |> f |> box |> fuzzyFromScalar preference s
+    | Null _ -> Fuzzy.result null
+    | otherwise -> raise (mustBeScalar t otherwise)
+
   /// <summary>
   /// <c>YamlObject.Scalar</c>からオブジェクトを生成します。値が<c>YamlObject.Null</c>の場合はnullを返します。
   /// </summary>

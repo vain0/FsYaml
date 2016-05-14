@@ -395,6 +395,60 @@ module LoadUnionTest =
       run body
     }
 
+  module LoadInferUnionCaseTest =
+    open FsYaml.Attributes
+    open FsYaml.Utility
+
+    [<InferUnionCase>]
+    type InferUnion =
+      | Int of int
+      | String of string
+      | Tuple of int * string
+      | List of list<string>
+
+    let ``ファジー`` =
+      let body (yaml, t, expected) = test {
+        let construct' = Native.construct' TypeDefinitions.defaultDefinitions
+        let fuzzyConstruct' = TypeDefinitions.Detail.fuzzyConstruct construct'
+        let actual = fuzzyConstruct' t yaml
+        do! actual |> should equal expected
+      }
+      parameterize {
+        case (parse "1"     , typeof<int>, Fuzzy.create 1.0 (1 :> obj))
+        case (parse "'1'"   , typeof<int>, Fuzzy.create 0.5 (1 :> obj))
+        case (parse "[1, a]", typeof<int * string>, Fuzzy.create 0.5 ((1, "a") :> obj))
+        case (parse "[1, 'a']", typeof<int * string>, Fuzzy.create 1.0 ((1, "a") :> obj))
+        case (parse "[1, a]", typeof<list<string>>, Fuzzy.create 0.25 (["1"; "a"] :> obj))
+        run body
+      }
+
+    let ``ユニオンケース推論が働く`` =
+      let body (yaml, expected) = test {
+        let actual = yaml |> Yaml.load<InferUnion>
+        do! actual |> should equal expected
+      }
+      parameterize {
+        // 標準的なケース
+        case ("a", String "a")
+        case ("[a, b]", List ["a"; "b"])
+        case ("[1, 2, 3]", List ["1"; "2"; "3"])
+        // plain スカラーは非文字列への変換が優先される
+        case ("1", Int 1)
+        case ("[1, 'a']", Tuple (1, "a"))
+        // non-plain スカラーは文字列への変換が優先される
+        case ("'1'", String "1")
+        case ("['1', 'a']", List ["1"; "a"])
+        run body
+      }
+
+    [<InferUnionCase>]
+    type InferInt = InferInt of int
+
+    let ``好まれない変換も行える`` = test {
+      let actual = Yaml.load<InferInt> "'1'"
+      do! actual |> should equal (InferInt 1)
+    }
+
 module LoadRecordTest =
   type TestRecord = { A: int; B: string }
 

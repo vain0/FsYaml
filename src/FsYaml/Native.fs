@@ -2,6 +2,7 @@
 
 open FsYaml.Utility
 open FsYaml.NativeTypes
+open FsYaml.TypeDefinitions
 
 let rec construct' definitions t yaml =
   match definitions |> Seq.tryFind (fun d -> d.Accept t) with

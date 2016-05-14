@@ -13,11 +13,17 @@ module internal Detail =
     Construct = constructFromScalar int
     Represent = representAsPlain string
   }
+  let intFuzzyConstruct x =
+    fuzzyConstructFromScalar PrefersPlain int x
+
   let int64Def = {
     Accept = (=)typeof<int64>
     Construct = constructFromScalar int64
     Represent = representAsPlain string
   }
+  let int64FuzzyConstruct x =
+    fuzzyConstructFromScalar PrefersPlain int64 x
+
   module FloatConstructor =
     let ofString s =
       match s |> String.toLower with
@@ -38,11 +44,17 @@ module internal Detail =
         else string n
       Scalar (Plain text, None)
   }
+  let floatFuzzyConstruct x =
+    fuzzyConstructFromScalar PrefersPlain float x
+
   let stringDef = {
     Accept = (=)typeof<string>
     Construct = MaybeNull.constructFromScalar id
     Represent = MaybeNull.representAsNonPlain string
   }
+  let stringFuzzyConstruct x =
+    fuzzyConstructFromScalar PrefersNonPlain string x
+
   module BoolConstructor =
     let ofString s =
       match s |> String.toLower with
@@ -56,11 +68,16 @@ module internal Detail =
       let text = unbox<bool> obj |> string |> String.toLower 
       Scalar (Plain text, None)
   }
+  let boolFuzzyConstruct x =
+    fuzzyConstructFromScalar PrefersPlain BoolConstructor.ofString x
+
   let decimalDef = {
     Accept = (=)typeof<decimal>
     Construct = constructFromScalar decimal
     Represent = representAsPlain string
   }
+  let decimalFuzzyConstructor x =
+    fuzzyConstructFromScalar PrefersPlain decimal x
   let datetimeDef = {
     Accept = (=)typeof<DateTime>
     Construct = constructFromScalar (fun x -> DateTime.Parse(x))
@@ -124,6 +141,21 @@ module internal Detail =
         FSharpValue.MakeRecord(t, values)
       | otherwise -> raise (mustBeMapping t otherwise)
 
+    let fuzzyConstruct fuzzyConstruct' _ t yaml =
+      match yaml with
+      | Mapping (mapping, _) ->
+        let findFieldValue (field: PropertyInfo) =
+          match Mapping.tryFind field.Name mapping with
+          | Some valueObj -> Some (fuzzyConstruct' field.PropertyType valueObj)
+          | None -> tryGetDefaultValue field |> Option.map Fuzzy.result
+          |> Option.getOrElse (fun () ->
+            raise (FsYamlException.WithYaml(yaml, Resources.getString "recordFieldNotFound", PropertyInfo.print field)))
+        FSharpType.GetRecordFields(t)
+        |> Array.map findFieldValue
+        |> Fuzzy.flatten
+        |> Fuzzy.map (fun values -> FSharpValue.MakeRecord(t, Array.ofList values))
+      | otherwise -> raise (mustBeMapping t otherwise)
+
   module RecordRepresenter =
     open System.Reflection
     open RecordConstructor
@@ -170,6 +202,16 @@ module internal Detail =
         |> Seq.toList
       Sequence (values, None)
   }
+  let tupleFuzzyConstruct fuzzyConstruct' _ t yaml =
+    match yaml with
+    | Sequence (sequence, _) ->
+      let elementTypes = FSharpType.GetTupleElements(t)
+      match Seq.tryZip elementTypes sequence with
+      | Some xs ->
+        xs |> Seq.map (fun (elementType, node) -> fuzzyConstruct' elementType node) |> Seq.toArray
+        |> Fuzzy.flatten |> Fuzzy.map (fun values -> FSharpValue.MakeTuple(Array.ofList values, t))
+      | None -> raise (FsYamlException.WithYaml(yaml, Resources.getString "tupleElementNumber", Type.print t, Array.length elementTypes))
+    | otherwise -> raise (mustBeSequence t otherwise)
 
   let listDef = {
     Accept = (isGenericTypeDef typedefof<list<_>>)
@@ -182,6 +224,14 @@ module internal Detail =
       | otherwise -> raise (mustBeSequence t otherwise)
     Represent = representSeqAsSequence
   }
+  let listFuzzyConstruct fuzzyConstruct' _ (t: Type) yaml =
+    match yaml with
+    | Sequence (sequence, _) ->
+      let elementType = t.GetGenericArguments().[0]
+      sequence |> List.map (fuzzyConstruct' elementType)
+      |> Fuzzy.flatten
+      |> Fuzzy.map (fun elements -> ObjectElementSeq.toList elementType elements)
+    | otherwise -> raise (mustBeSequence t otherwise)
 
   let setDef = {
     Accept = (isGenericTypeDef typedefof<Set<_>>)
@@ -194,6 +244,14 @@ module internal Detail =
       | otherwise -> raise (mustBeSequence t otherwise)
     Represent = representSeqAsSequence
   }
+  let setFuzzyConstruct fuzzyConstruct' _ (t: Type) yaml =
+    match yaml with
+    | Sequence (sequence, _) ->
+      let elementType = t.GetGenericArguments().[0]
+      sequence |> List.map (fuzzyConstruct' elementType)
+      |> Fuzzy.flatten
+      |> Fuzzy.map (fun elements -> ObjectElementSeq.toSet elementType elements)
+    | otherwise -> raise (mustBeSequence t otherwise)
 
   let mapDef = {
     Accept = (isGenericTypeDef typedefof<Map<_, _>>)
@@ -225,6 +283,19 @@ module internal Detail =
         |> Map.ofSeq
       Mapping (values, None)
   }
+  let mapFuzzyConstruct fuzzyConstruct' _ (t: Type) yaml =
+      match yaml with
+      | Mapping (mapping, _) ->
+        let keyType, valueType = let ts = t.GetGenericArguments() in (ts.[0], ts.[1])
+        mapping
+        |> Seq.map (fun (KeyValue(keyYaml, valueYaml)) ->
+          fuzzyConstruct' keyType keyYaml |> Fuzzy.bind (fun key ->
+          fuzzyConstruct' valueType valueYaml |> Fuzzy.map (fun value ->
+            (key, value)
+          )))
+        |> Fuzzy.flatten
+        |> Fuzzy.map (fun values -> ObjectElementSeq.toMap keyType valueType values)
+      | otherwise -> raise (mustBeMapping t otherwise)
 
   let arrayDef = {
     Accept = (fun t -> t.IsArray)
@@ -237,6 +308,14 @@ module internal Detail =
       | otherwise -> raise (mustBeSequence t otherwise)
     Represent = representSeqAsSequence
   }
+  let arrayFuzzyConstruct fuzzyConstruct' _ (t: Type) yaml =
+    match yaml with
+    | Sequence (sequence, _) ->
+      let elementType = t.GetElementType()
+      Seq.map (fuzzyConstruct' elementType) sequence
+      |> Fuzzy.flatten
+      |> Fuzzy.map (fun values -> ObjectElementSeq.toArray elementType values)
+    | otherwise -> raise (mustBeSequence t otherwise)
 
   let seqDef = {
     Accept = (isGenericTypeDef typedefof<seq<_>>)
@@ -249,6 +328,14 @@ module internal Detail =
       | otherwise -> raise (mustBeSequence t otherwise)
     Represent = representSeqAsSequence
   }
+  let seqFuzzyConstruct fuzzyConstruct' _ (t: Type) yaml =
+    match yaml with
+    | Sequence (sequence, _) ->
+      let elementType = t.GetGenericArguments().[0]
+      Seq.map (fuzzyConstruct' elementType) sequence
+      |> Fuzzy.flatten
+      |> Fuzzy.map (fun xs -> ObjectElementSeq.cast elementType xs)
+    | otherwise -> raise (mustBeSequence t otherwise)
 
   module UnionConstructor =
     let makeUnion (union: UnionCaseInfo) values = FSharpValue.MakeUnion(union, Seq.toArray values)
@@ -315,11 +402,6 @@ module internal Detail =
       | 1 -> oneFieldCase construct' yaml union
       | _ -> manyFieldsCase construct' yaml union
 
-    let construct construct' t yaml =
-      match FSharpType.GetUnionCases(t) |> Seq.tryPick (tryConstruct construct' yaml) with
-      | Some x -> x
-      | None -> raise (FsYamlException.WithYaml(yaml, Resources.getString "unionCaseNotFound", Type.print t))
-
   module UnionRepresenter =
     let caseName (union: UnionCaseInfo) = Scalar (Plain union.Name, None)
 
@@ -370,13 +452,68 @@ module internal Detail =
         | 1 -> oneField represent union values.[0]
         | _ -> manyFields represent union values 
 
-  let unionDef = {
-    Accept = fun t -> FSharpType.IsUnion(t)
-    Construct = UnionConstructor.construct
-    Represent = UnionRepresenter.represent
-  }
+  let rec internal defaultFuzzyConstructors = [(intDef, intFuzzyConstruct); (int64Def, int64FuzzyConstruct); (floatDef, floatFuzzyConstruct); (stringDef, stringFuzzyConstruct); (boolDef, boolFuzzyConstruct); (decimalDef, decimalFuzzyConstructor); (recordDef, RecordConstructor.fuzzyConstruct); (tupleDef, tupleFuzzyConstruct); (listDef, listFuzzyConstruct); (setDef, setFuzzyConstruct); (mapDef, mapFuzzyConstruct); (arrayDef, arrayFuzzyConstruct); (seqDef, seqFuzzyConstruct); (optionDef, optionFuzzyConstruct); (unionDef, unionFuzzyConstruct) ]
 
-  let optionDef = {
+  and internal fuzzyConstruct construct' t yaml =
+    match defaultFuzzyConstructors |> Seq.tryFind (fun (d, _) -> d.Accept t) with
+    | Some (_, f) -> f (fuzzyConstruct construct') construct' t yaml
+    | None -> construct' t yaml |> Fuzzy.result
+
+  and tryFuzzyConstructUnionCase construct' _ yaml (union: UnionCaseInfo) =
+    try
+      let fields = union.GetFields()
+      match fields.Length with
+      | 0 ->
+        match yaml with
+        | Null _ -> Some (Fuzzy.result (UnionConstructor.makeUnion union []))
+        | _ -> None
+      | 1 ->
+        fuzzyConstruct construct' fields.[0].PropertyType yaml
+        |> Fuzzy.map (fun x -> UnionConstructor.makeUnion union [x]) |> Some
+      | _ ->
+        match yaml with
+        | Sequence (sequence, _) ->
+          Seq.tryZip fields sequence |> Option.map (fun xs ->
+            xs |> Seq.map (fun (field, yaml) -> fuzzyConstruct construct' field.PropertyType yaml)
+            |> Fuzzy.flatten |> Fuzzy.map (UnionConstructor.makeUnion union))
+        | _ -> None
+    with | _ -> None
+
+  and unionConstruct construct' t yaml =
+    let infers = Attribute.tryGetCustomAttribute<Attributes.InferUnionCaseAttribute> t |> Option.isSome
+    if infers then
+      let candidates = FSharpType.GetUnionCases(t) |> Seq.choose (tryFuzzyConstructUnionCase construct' t yaml)
+      // TODO: FsYamlException を投げる
+      match candidates |> Seq.maxListBy Fuzzy.probability with
+      | [] -> failwith "推論失敗/候補なし"
+      | [result] -> result |> Fuzzy.value
+      | _ -> failwith "推論失敗/競合"
+    else
+      match FSharpType.GetUnionCases(t) |> Seq.tryPick (UnionConstructor.tryConstruct construct' yaml) with
+      | Some x -> x
+      | None -> raise (FsYamlException.WithYaml(yaml, Resources.getString "unionCaseNotFound", Type.print t))
+
+  and unionDef = {
+    Accept = fun t -> FSharpType.IsUnion(t)
+    Construct = unionConstruct
+    Represent = UnionRepresenter.represent
+    }
+
+  and unionFuzzyConstruct fuzzyConstruct' construct' t yaml =
+    let infers = Attribute.tryGetCustomAttribute<Attributes.InferUnionCaseAttribute> t |> Option.isSome
+    if infers then
+      let candidates = FSharpType.GetUnionCases(t) |> Seq.choose (tryFuzzyConstructUnionCase construct' t yaml)
+      // TODO: FsYamlException を投げる
+      match candidates |> Seq.maxListBy Fuzzy.probability with
+      | [] -> failwith "推論失敗/候補なし"
+      | [result] -> result
+      | _ -> failwith "推論失敗/競合"
+    else
+      match FSharpType.GetUnionCases(t) |> Seq.tryPick (UnionConstructor.tryConstruct construct' yaml) with
+      | Some x -> x |> Fuzzy.result
+      | None -> raise (FsYamlException.WithYaml(yaml, Resources.getString "unionCaseNotFound", Type.print t))
+
+  and optionDef = {
     Accept = fun t -> FSharpType.IsUnion(t) && isGenericTypeDef typedefof<Option<_>> t
     Construct = fun construct' t yaml ->
       let noneCase, someCase = let xs = FSharpType.GetUnionCases(t) in (xs.[0], xs.[1])
@@ -395,7 +532,17 @@ module internal Detail =
         let caseInfo, values = FSharpValue.GetUnionFields(obj, t)
         let valueType = caseInfo.GetFields().[0].PropertyType
         represent valueType values.[0]
-  }
+    }
+  and optionFuzzyConstruct fuzzyConstruct' construct' t yaml =
+    let noneCase, someCase = let xs = FSharpType.GetUnionCases(t) in (xs.[0], xs.[1])
+    match yaml with
+    | Null _ -> (UnionConstructor.makeUnion noneCase []) |> Fuzzy.result
+    | _ ->
+      try
+        let parameterType = t.GetGenericArguments().[0]
+        fuzzyConstruct' parameterType yaml
+        |> Fuzzy.map (fun value -> UnionConstructor.makeUnion someCase [ value ])
+      with _ -> unionFuzzyConstruct fuzzyConstruct' construct' t yaml
 
 open Detail
 
