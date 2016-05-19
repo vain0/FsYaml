@@ -6,6 +6,7 @@ open Assertions
 
 open FsYaml
 open FsYaml.RepresentationTypes
+open FsYaml.Utility
 
 let represent<'a> value = Native.represent<'a> TypeDefinitions.defaultDefinitions value
 
@@ -13,7 +14,7 @@ let scalar x = Scalar (x, None)
 let plain x = scalar (Plain x)
 let nonPlain x = scalar (NonPlain x)
 let sequence x = Sequence (x, None)
-let mapping x = Mapping (Map.ofSeq x, None)
+let mapping x = Mapping (OrdMap.ofSeq x, None)
 let null' = Null None
 
 module DumpTest =
@@ -143,6 +144,14 @@ module DumpRecordTest =
       let actual = representOmittingDefaultFields { FieldA = -1; FieldB = None }
       do! actual |> should equal (mapping [ ])
     }
+
+  type OrdRecord =
+    { Sunday: int; Monday: int }
+
+  let ``定義順に出力される`` = test {
+    let actual = represent { Sunday = 0; Monday = 1 }
+    do! actual |> should equal (mapping [(plain "Sunday", plain "0"); (plain "Monday", plain "1")])
+  }
 
 module DumpUnionTest =
   type TestUnion =

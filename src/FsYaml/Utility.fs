@@ -168,6 +168,23 @@ module internal Internal =
       let folder acc m = acc |> bind (fun xs -> m |> map (fun x -> x :: xs))
       ms |> Seq.fold folder (result []) |> map List.rev
 
+  [<AutoOpen>]
+  module OrdMapType =
+    type OrdMap<'k, 'v> = list<'k * 'v>
+
+  module OrdMap =
+    open System.Collections.Generic
+
+    let ofSeq (kvs: seq<'k * 'v>): OrdMap<'k, 'v> = kvs |> List.ofSeq
+    let ofList (kvs: list<'k * 'v>): OrdMap<'k, 'v> = kvs
+    let toList (kvs: OrdMap<'k, 'v>): list<'k * 'v> = kvs
+
+    let tryPick f kvs =
+      kvs |> List.tryPick (fun (k, v) -> f k v)
+
+    let pick f kvs =
+      kvs |> tryPick f |> Option.getOrElse (raise (KeyNotFoundException()))
+
   module ObjectElementSeq =
     open System
     open System.Linq
