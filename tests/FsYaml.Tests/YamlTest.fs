@@ -16,7 +16,7 @@ type ComplexType = {
 let value = {
   FieldA = [ 1; 2; 3 ]
   FieldB = Map.ofList [ (100, 200); (200, 400); (500, 1000); (1, 2) ]
-  FieldC = "abc\r\ndef"
+  FieldC = "abc\ndef"
   FieldD =
     Some {
       FieldA = []
@@ -37,7 +37,9 @@ FieldB:
   100: 200
   200: 400
   500: 1000
-FieldC: "abc\r\ndef"
+FieldC: >-
+  abc
+  def
 FieldD:
   FieldA: []
   FieldB:

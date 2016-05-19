@@ -65,7 +65,7 @@ let rec intermediateToYamlDotNet (yaml: YamlObject) =
     node :> YamlNode
   | Scalar (NonPlain value, _) ->
     let node = YamlScalarNode(value)
-    node.Style <- ScalarStyle.DoubleQuoted
+    node.Style <- ScalarStyle.Any
     node :> YamlNode
   | Sequence (sequence, _) ->
     let children = sequence |> List.map intermediateToYamlDotNet
