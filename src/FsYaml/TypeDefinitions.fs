@@ -197,6 +197,49 @@ module internal Detail =
     Represent = representSeqAsSequence
   }
 
+  module OrdMapDefinition =
+    let ordMapFromObjectElementSeq (keyType: Type) (valueType: Type) (xs: (obj * obj) seq) =
+      //let tupleType = typedefof<_ * _>.MakeGenericType([| keyType; valueType |])
+      //let parameterType = typedefof<list<_>>.MakeGenericType([| tupleType |])
+      //let elementList = ObjectElementSeq.toList tupleType (xs |> Seq.map (fun kv -> kv :> obj))
+      let ordMapType = typedefof<OrdMap<_, _>>.MakeGenericType([| keyType; valueType |])
+      FSharpValue.MakeUnion(FSharpType.GetUnionCases(ordMapType).[0], [| (xs :> obj) |])
+
+    let fuzzyConstructKont k fuzzyConstruct' (t: Type) yaml =
+      match yaml with
+      | Mapping (mapping, _) ->
+        let keyType, valueType = let ts = t.GetGenericArguments() in (ts.[0], ts.[1])
+        let values =
+          mapping
+          |> OrdMap.toList
+          |> List.map (fun (keyYaml, valueYaml) ->
+            fuzzyConstruct' keyType keyYaml |> Fuzzy.bind (fun key ->
+            fuzzyConstruct' valueType valueYaml |> Fuzzy.map (fun value ->
+              (key, value)
+          )))
+          |> Fuzzy.flatten
+        values |> Fuzzy.map (fun values -> k keyType valueType values)
+      | _ -> raise (mustBeMapping t yaml)
+
+    let fuzzyConstruct =
+      fuzzyConstructKont ordMapFromObjectElementSeq
+
+    let represent represent t obj =
+      let (union, values) = FSharpValue.GetUnionFields(obj, t)
+      let keyType, valueType = let ts = t.GetGenericArguments() in (ts.[0], ts.[1])
+      let seqType = union.GetFields().[0].PropertyType
+      let representKeyValue (kv: obj) =
+        let kv = FSharpValue.GetTupleFields(kv)
+        (represent keyType kv.[0], represent valueType kv.[1])
+      let values = values.[0] |> RuntimeSeq.map representKeyValue seqType |> OrdMap.ofSeq
+      Mapping (values, None)
+
+  let ordMapDef = {
+    Accept = (isGenericTypeDef typedefof<OrdMap<_, _>>)
+    FuzzyConstruct = OrdMapDefinition.fuzzyConstruct
+    Represent = OrdMapDefinition.represent
+  }
+
   let mapDef = {
     Accept = (isGenericTypeDef typedefof<Map<_, _>>)
     FuzzyConstruct = fun fuzzyConstruct' t yaml ->
@@ -443,5 +486,5 @@ let recordDefOmittingDefaultFields =
   { recordDef with Represent = RecordRepresenter.represent ((* omitDefaultFields: *) true) }
   |> typeDefinitionFromInternalTypeDefinition
 
-let internal defaultInternalDefinitions = [ intDef; int64Def; floatDef; stringDef; boolDef; decimalDef; datetimeDef; timespanDef; recordDef; tupleDef; listDef; setDef; mapDef; arrayDef; seqDef; optionDef; unionDef ]
+let internal defaultInternalDefinitions = [ intDef; int64Def; floatDef; stringDef; boolDef; decimalDef; datetimeDef; timespanDef; recordDef; tupleDef; listDef; setDef; ordMapDef; mapDef; arrayDef; seqDef; optionDef; unionDef ]
 let internal defaultDefinitions = defaultInternalDefinitions |> List.map typeDefinitionFromInternalTypeDefinition

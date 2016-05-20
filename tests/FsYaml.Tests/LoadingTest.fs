@@ -235,6 +235,17 @@ module LoadTest =
     do! actual |> should equal (Map.empty<string, int>)
   }
 
+  let OrdMapに変換できる =
+    let body (yaml, expected) = test {
+      let actual = Yaml.load<OrdMap<string, int>> yaml
+      do! actual |> should equal (OrdMap.ofList expected)
+    }
+    parameterize {
+      case ("{}", [])
+      case ("{b: 2, a: 1}", [("b", 2); ("a", 1)])
+      run body
+    }
+
   let arrayに変換できる = test {
     let yaml = "[ 1, 2, 3 ]"
     let actual = Yaml.load<int[]> yaml
