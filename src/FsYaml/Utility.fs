@@ -245,17 +245,17 @@ module internal Internal =
 
 [<AutoOpen>]
 module OrdMapType =
-  type OrdMap<'k, 'v> = list<'k * 'v>
+  type OrdMap<'k, 'v> = OrdMap of list<'k * 'v>
 
 module OrdMap =
   open System.Collections.Generic
 
-  let ofSeq (kvs: seq<'k * 'v>): OrdMap<'k, 'v> = kvs |> List.ofSeq
-  let ofList (kvs: list<'k * 'v>): OrdMap<'k, 'v> = kvs
-  let toList (kvs: OrdMap<'k, 'v>): list<'k * 'v> = kvs
+  let ofSeq (kvs: seq<'k * 'v>): OrdMap<'k, 'v> = kvs |> List.ofSeq |> OrdMap
+  let ofList (kvs: list<'k * 'v>): OrdMap<'k, 'v> = kvs |> OrdMap
+  let toList (OrdMap kvs): list<'k * 'v> = kvs
 
   let tryPick f kvs =
-    kvs |> List.tryPick (fun (k, v) -> f k v)
+    kvs |> toList |> List.tryPick (fun (k, v) -> f k v)
 
   let pick f kvs =
     kvs |> tryPick f |> Option.getOrElse (raise (KeyNotFoundException()))
