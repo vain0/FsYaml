@@ -51,7 +51,7 @@ let rec yamlDotNetToIntermediate (node: YamlNode) =
         let value = yamlDotNetToIntermediate value
         (key, value)
       )
-      |> Map.ofSeq
+      |> ArrayMap.ofSeq
     Mapping(mapping, position)
   | notSupported -> raise (FsYamlException.WithPosition(position, Resources.getString "notSupportedNode", Type.print (notSupported.GetType())))
     
@@ -75,7 +75,7 @@ let rec intermediateToYamlDotNet (yaml: YamlObject) =
   | Mapping (mapping, _) ->
     let children =
       mapping
-      |> Seq.map (fun (KeyValue(k, v)) ->
+      |> Seq.map (fun (k, v) ->
         let key = intermediateToYamlDotNet k
         let value = intermediateToYamlDotNet v
         KeyValuePair(key, value)

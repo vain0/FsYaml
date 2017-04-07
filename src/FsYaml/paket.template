@@ -1,17 +1,22 @@
-type project
+type file
+id
+    VainZero.FsYaml
 owners
-    bleis-tift, hafuu
-authors 
-    bleis-tift, hafuu
+    vain0
+version
+    2.2.0
+authors
+    bleis-tift, hafuu, vain0
 projectUrl
-    http://bleis-tift.github.io/FsYaml/
+    http://github.com/vain0/FsYaml
 licenseUrl
     http://github.com/bleis-tift/FsYaml/blob/master/LICENSE.txt
 requireLicenseAcceptance
     false
-copyright
-    Copyright 2015
 tags
     f# yaml
 description
     Type safe Yaml library for F#.
+dependencies
+    FSharp.Configuration = 0.4.10
+    YamlDotNet ~> 3.0 >= 3.8.0

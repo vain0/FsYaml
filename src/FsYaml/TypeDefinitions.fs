@@ -119,7 +119,7 @@ module internal Detail =
           then None  // Omit if it's the default value of the field
           else Some (name, value)
         )
-        |> Map.ofSeq
+        |> ArrayMap.ofSeq
       Mapping (values, None)
 
   let recordDef = {
@@ -180,7 +180,7 @@ module internal Detail =
         let keyType, valueType = let ts = t.GetGenericArguments() in (ts.[0], ts.[1])
         let values =
           mapping
-          |> Seq.map (fun (KeyValue(keyYaml, valueYaml)) ->
+          |> Seq.map (fun (keyYaml, valueYaml) ->
             let key = construct' keyType keyYaml
             let value = construct' valueType valueYaml
             (key, value)
@@ -199,7 +199,7 @@ module internal Detail =
           let value = represent valueType value
           (key, value)
         )
-        |> Map.ofSeq
+        |> ArrayMap.ofSeq
       Mapping (values, None)
   }
 
@@ -240,7 +240,7 @@ module internal Detail =
           None
       | _ -> None
 
-    let tryNamedFieldCase construct' (union: UnionCaseInfo) (mapping: Map<YamlObject, YamlObject>) =
+    let tryNamedFieldCase construct' (union: UnionCaseInfo) (mapping: ArrayMap<YamlObject, YamlObject>) =
       let fields = union.GetFields()
       let yamls = fields |> Array.choose (fun field -> Mapping.tryFind field.Name mapping)
         
@@ -299,7 +299,7 @@ module internal Detail =
       let fields = union.GetFields()
       let valueType = fields.[0].PropertyType
       let value = represent valueType value
-      Mapping (Map.ofList [caseName union, value ], None)
+      Mapping (ArrayMap.singleton (caseName union) value, None)
 
     let manyFields represent (union: UnionCaseInfo) (values: obj[]) =
       let fields = union.GetFields()
@@ -309,7 +309,7 @@ module internal Detail =
           |> Seq.map (fun (field, value) -> represent field.PropertyType value)
           |> Seq.toList
         Sequence (xs, None)
-      Mapping (Map.ofList [ caseName union, fieldValues ], None)
+      Mapping (ArrayMap.singleton (caseName union) fieldValues, None)
 
     let isNamedFieldCase (union: UnionCaseInfo) =
       let fields = union.GetFields()
@@ -327,10 +327,10 @@ module internal Detail =
           let value = represent field.PropertyType value
           (name, value)
         )
-        |> Map.ofSeq
+        |> ArrayMap.ofSeq
       let name = caseName union
       let fieldMapping = Mapping (values, None)
-      Mapping (Map.ofList [ name, fieldMapping ], None)
+      Mapping (ArrayMap.singleton name fieldMapping, None)
 
     let represent (represent: RecursiveRepresenter) (t: Type) (obj: obj) =
       let union, values = FSharpValue.GetUnionFields(obj, t)
