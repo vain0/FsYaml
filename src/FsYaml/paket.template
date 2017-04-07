@@ -18,5 +18,5 @@ tags
 description
     Type safe Yaml library for F#.
 dependencies
-    FSharp.Configuration = 0.4.10
-    YamlDotNet ~> 3.0 >= 3.8.0
+    FSharp.Configuration = 0.6.4
+    YamlDotNet ~> 4.0 >= 4.1.0
