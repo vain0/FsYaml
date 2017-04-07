@@ -21,4 +21,4 @@ dependencies
     FSharp.Configuration = 0.6.4
     YamlDotNet ~> 4.0 >= 4.1.0
 files
-    bin/Release ==> lib/net45
+    bin/Release/FsYaml.* ==> lib/net45
