@@ -1,6 +1,7 @@
 ﻿namespace FsYaml
 
 open System
+open Utility
 
 /// YamlのRepresentation層の型を提供します。
 module RepresentationTypes =
@@ -29,7 +30,7 @@ module RepresentationTypes =
     /// Sequence node
     | Sequence of YamlObject list * Position option
     /// Mapping node
-    | Mapping of Map<YamlObject, YamlObject> * Position option
+    | Mapping of ArrayMap<YamlObject, YamlObject> * Position option
     /// Scalarを特殊化したNullの値
     | Null of Position option
 
@@ -56,12 +57,12 @@ module RepresentationTypes =
       | Scalar (k, _) -> if Scalar.value k = name then Some v else None
       | _ -> None)
     /// Mapping内の要素を検索します。要素が存在しない場合はNoneを返します。
-    let tryFind key (mapping: Map<YamlObject, YamlObject>) = Map.tryPick (pickF key) mapping
+    let tryFind key (mapping: ArrayMap<YamlObject, YamlObject>) = ArrayMap.tryPick (pickF key) mapping
     /// <summary>
     /// Mapping内の要素を検索します。
     /// </summary>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">キーが存在しない場合</exception>
-    let find key (mapping: Map<YamlObject, YamlObject>) = Map.pick (pickF key) mapping
+    let find key (mapping: ArrayMap<YamlObject, YamlObject>) = ArrayMap.pick (pickF key) mapping
 
 /// YamlのNative層の型を提供します。
 module NativeTypes =

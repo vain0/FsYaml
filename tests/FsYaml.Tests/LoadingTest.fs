@@ -6,6 +6,7 @@ open Assertions
 
 open FsYaml
 open FsYaml.RepresentationTypes
+open FsYaml.Utility
 
 let rec clearPosition = function
   | Scalar (v, _) -> Scalar (v, None)
@@ -13,7 +14,7 @@ let rec clearPosition = function
     let values = List.map clearPosition v
     Sequence (values, None)
   | Mapping (v, _) ->
-    let mapping = v |> Seq.map (fun (KeyValue(key, value)) -> (clearPosition key, clearPosition value)) |> Map.ofSeq
+    let mapping = v |> Seq.map (fun (key, value) -> (clearPosition key, clearPosition value)) |> ArrayMap.ofSeq
     Mapping (mapping, None)
   | Null _ -> Null None
 
@@ -64,8 +65,10 @@ module RepresentationTest =
     let body input = test {
       let actual = parse input
       let expected =
-        let mapping = Map.ofList [ Scalar (Plain "abc", None), Scalar (Plain "def", None);
-                                   Scalar (Plain "ghi", None), Sequence ([ Scalar (Plain "jkf", None) ], None) ]
+        let mapping =
+          ArrayMap.ofSeq
+            [ Scalar (Plain "abc", None), Scalar (Plain "def", None);
+              Scalar (Plain "ghi", None), Sequence ([ Scalar (Plain "jkf", None) ], None) ]
         Mapping (mapping, None)
       do! actual |> should equal expected
     }
@@ -82,7 +85,7 @@ ghi:
   let Nullをパースできる =
     let body input = test {
       let actual = parse input
-      let expected = Mapping (Map.ofList [ Scalar (Plain "abc", None), Null None ], None)
+      let expected = Mapping (ArrayMap.singleton (Scalar (Plain "abc", None)) (Null None), None)
       do! actual |> should equal expected
     }
     parameterize {

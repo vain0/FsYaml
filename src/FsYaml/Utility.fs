@@ -120,7 +120,36 @@ module Seq =
 module Option =
   let filter f = Option.bind (fun x -> if f x then Some x else None)
 
+  let getOrElse f =
+    function
+    | Some x -> x
+    | None -> f ()
+
 let fsharpAsembly = typedefof<list<_>>.Assembly
+
+/// Represents an ordered map.
+type ArrayMap<'k, 'v> = array<'k * 'v>
+
+module ArrayMap =
+  open System.Collections.Generic
+
+  let ofSeq (kvs: seq<'k * 'v>): ArrayMap<'k, 'v> =
+    kvs |> Seq.toArray
+
+  let ofList (kvs: list<'k * 'v>) = kvs |> ofSeq
+  let toList (kvs: ArrayMap<'k, 'v>) = kvs |> List.ofArray
+
+  let ofArray (kvs: array<'k * 'v>): ArrayMap<'k, 'v> = kvs
+  let toArray (kvs: ArrayMap<'k, 'v>): array<'k * 'v> = kvs
+
+  let singleton (key: 'k) (value: 'v): ArrayMap<'k, 'v> =
+    [|(key, value)|]
+
+  let tryPick f kvs =
+    kvs |> Seq.tryPick (fun (k, v) -> f k v)
+
+  let pick f kvs =
+    kvs |> tryPick f |> Option.getOrElse (raise (KeyNotFoundException()))
 
 module ObjectElementSeq =
   open System
