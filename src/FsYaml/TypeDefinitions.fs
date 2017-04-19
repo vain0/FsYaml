@@ -180,7 +180,7 @@ module internal Detail =
         let keyType, valueType = let ts = t.GetGenericArguments() in (ts.[0], ts.[1])
         let values =
           mapping
-          |> Seq.map (fun (keyYaml, valueYaml) ->
+          |> Seq.map (fun (KeyValue (keyYaml, valueYaml)) ->
             let key = construct' keyType keyYaml
             let value = construct' valueType valueYaml
             (key, value)

@@ -14,7 +14,7 @@ let rec clearPosition = function
     let values = List.map clearPosition v
     Sequence (values, None)
   | Mapping (v, _) ->
-    let mapping = v |> Seq.map (fun (key, value) -> (clearPosition key, clearPosition value)) |> ArrayMap.ofSeq
+    let mapping = v |> Seq.map (fun (KeyValue (key, value)) -> (clearPosition key, clearPosition value)) |> ArrayMap.ofSeq
     Mapping (mapping, None)
   | Null _ -> Null None
 

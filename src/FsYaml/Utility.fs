@@ -1,5 +1,7 @@
 ﻿module internal FsYaml.Utility
 
+open System.Collections.Generic
+
 module Resources =
   type private Dummy = Dummy
   let private manager = System.Resources.ResourceManager("Resources", typeof<Dummy>.Assembly)
@@ -128,28 +130,28 @@ module Option =
 let fsharpAsembly = typedefof<list<_>>.Assembly
 
 /// Represents an ordered map.
-type ArrayMap<'k, 'v> = array<'k * 'v>
+type ArrayMap<'k, 'v> = array<KeyValuePair<'k, 'v>>
 
 module ArrayMap =
   open System.Collections.Generic
 
   let ofSeq (kvs: seq<'k * 'v>): ArrayMap<'k, 'v> =
-    kvs |> Seq.toArray
+    kvs |> Seq.map KeyValuePair |> Seq.toArray
 
   let ofList (kvs: list<'k * 'v>) = kvs |> ofSeq
   let toList (kvs: ArrayMap<'k, 'v>) = kvs |> List.ofArray
 
-  let ofArray (kvs: array<'k * 'v>): ArrayMap<'k, 'v> = kvs
-  let toArray (kvs: ArrayMap<'k, 'v>): array<'k * 'v> = kvs
+  let ofArray (kvs: array<KeyValuePair<'k, 'v>>): ArrayMap<'k, 'v> = kvs
+  let toArray (kvs: ArrayMap<'k, 'v>): array<KeyValuePair<'k, 'v>> = kvs
 
   let singleton (key: 'k) (value: 'v): ArrayMap<'k, 'v> =
-    [|(key, value)|]
+    [|KeyValuePair(key, value)|]
 
-  let tryPick f kvs =
-    kvs |> Seq.tryPick (fun (k, v) -> f k v)
+  let tryPick f (kvs: ArrayMap<'k, 'v>) =
+    kvs |> Seq.tryPick (fun (KeyValue (k, v)) -> f k v)
 
   let pick f kvs =
-    kvs |> tryPick f |> Option.getOrElse (raise (KeyNotFoundException()))
+    kvs |> tryPick f |> Option.getOrElse (fun () -> raise (KeyNotFoundException()))
 
 module ObjectElementSeq =
   open System
