@@ -127,8 +127,6 @@ module Option =
     | Some x -> x
     | None -> f ()
 
-let fsharpAsembly = typedefof<list<_>>.Assembly
-
 /// Represents an ordered map.
 type ArrayMap<'k, 'v> = array<KeyValuePair<'k, 'v>>
 
@@ -138,11 +136,17 @@ module ArrayMap =
   let ofSeq (kvs: seq<'k * 'v>): ArrayMap<'k, 'v> =
     kvs |> Seq.map KeyValuePair |> Seq.toArray
 
+  let toSeq (kvs: ArrayMap<'k, 'v>): seq<'k * 'v> =
+    kvs |> Array.map (|KeyValue|) :> seq<_>
+
   let ofList (kvs: list<'k * 'v>) = kvs |> ofSeq
   let toList (kvs: ArrayMap<'k, 'v>) = kvs |> List.ofArray
 
   let ofArray (kvs: array<KeyValuePair<'k, 'v>>): ArrayMap<'k, 'v> = kvs
   let toArray (kvs: ArrayMap<'k, 'v>): array<KeyValuePair<'k, 'v>> = kvs
+
+  let empty<'k, 'v> : ArrayMap<'k, 'v> =
+    Array.empty<KeyValuePair<'k, 'v>>
 
   let singleton (key: 'k) (value: 'v): ArrayMap<'k, 'v> =
     [|KeyValuePair(key, value)|]
@@ -153,8 +157,11 @@ module ArrayMap =
   let pick f kvs =
     kvs |> tryPick f |> Option.getOrElse (fun () -> raise (KeyNotFoundException()))
 
+let fsharpAsembly = typedefof<list<_>>.Assembly
+
 module ObjectElementSeq =
   open System
+  open System.Collections.Generic
   open System.Linq
   open Microsoft.FSharp.Reflection
 
@@ -179,7 +186,7 @@ module ObjectElementSeq =
     let parameterType = typedefof<seq<_>>.MakeGenericType(t)
     let constructor' = setType.GetConstructor([| parameterType |])
     constructor'.Invoke([| parameter |])
-
+    
   let toMap (keyType: Type) (valueType: Type) (xs: (obj * obj) seq) =
     let tupleType = typedefof<_ * _>.MakeGenericType([| keyType; valueType |])
     let parameter = xs |> Seq.map (fun (k, v) -> FSharpValue.MakeTuple([| k; v |], tupleType)) |> cast tupleType
@@ -187,6 +194,17 @@ module ObjectElementSeq =
     let mapType = typedefof<Map<_, _>>.MakeGenericType([| keyType; valueType |])
     let constructor' = mapType.GetConstructor([| parameterType |])
     constructor'.Invoke([| parameter |])
+
+  let toArrayMap (keyType: Type) (valueType: Type) (xs: (obj * obj) seq) =
+    let pairType = typedefof<KeyValuePair<_, _>>.MakeGenericType([| keyType; valueType |])
+    let pairConstructor = pairType.GetConstructor([| keyType; valueType |])
+    let xs = xs |> Seq.toArray
+    let array = Array.CreateInstance(pairType, xs.Length)
+    xs |> Array.iteri (fun i (k, v) ->
+      let kv = pairConstructor.Invoke([| k; v |])
+      array.SetValue(kv, i)
+    )
+    array :> obj
 
   let toArray (t: Type) (xs: obj seq) =
     let array = Array.CreateInstance(t, xs.Count())
@@ -212,6 +230,24 @@ module RuntimeSeq =
       FSharpValue.MakeFunction(mappingFunctionType, fun x -> f x :> obj)
     let mapFunc = seqModule.GetMethod("Map").MakeGenericMethod(elementType, typeof<'a>)
     mapFunc.Invoke(null, [| mapping; xs |]) :?> seq<'a>
+
+module RuntimeArrayMap =
+  open System
+  open Microsoft.FSharp.Reflection
+
+  /// Gets the key/value types from the specified type
+  /// which represents typeof<ArrayMap<_, _>>.
+  let elementTypes (t: Type) =
+    let pairType = t.GetElementType()
+    let types = pairType.GetGenericArguments()
+    (types.[0], types.[1])
+
+  let toSeq (typ: Type) (arrayMap: obj): (obj * obj) seq =
+    let pairType = typ.GetElementType()
+    let keyProperty = pairType.GetProperty("Key")
+    let valueProperty = pairType.GetProperty("Value")
+    let tupleFromPair kv = (keyProperty.GetValue(kv), valueProperty.GetValue(kv))
+    arrayMap |> RuntimeSeq.map tupleFromPair (arrayMap.GetType())
 
 module RuntimeMap =
   open System

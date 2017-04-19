@@ -235,6 +235,18 @@ module LoadTest =
     do! actual |> should equal (Map.empty<string, int>)
   }
 
+  let ArrayMapに変換できる = test {
+    let yaml = "{ a: 1, b: 2 }"
+    let actual = Yaml.load<ArrayMap<string, int>> yaml
+    do! actual |> should equal (ArrayMap.ofList [ ("a", 1); ("b", 2) ])
+  }
+
+  let 空のArrayMapに変換できる = test {
+    let yaml = "{}"
+    let actual = Yaml.load<ArrayMap<string, int>> yaml
+    do! actual |> should equal (ArrayMap.empty<string, int>)
+  }
+
   let arrayに変換できる = test {
     let yaml = "[ 1, 2, 3 ]"
     let actual = Yaml.load<int[]> yaml

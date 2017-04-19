@@ -106,6 +106,13 @@ module ObjectElementSeq =
     do! unbox<Map<string, int>> actual |> should equal Map.empty<string, int>
   }
 
+  let ``オブジェクト列をArrayMapに変換できる`` = test {
+    let xs = [ ("1", 2); ("3", 4); ("4", 5) ] |> Seq.map (fun (k, v) -> (box k, box v))
+    let actual = ObjectElementSeq.toArrayMap typeof<string> typeof<int> xs
+    let expected = ArrayMap.ofList [ ("1", 2); ("3", 4); ("4", 5) ]
+    do! unbox<ArrayMap<string, int>> actual |> should equal expected
+  }
+
   let ``obj seqをint[]に変換できる`` = test {
     let xs = seq { 1..3 } |> Seq.map box
     let actual = ObjectElementSeq.toArray typeof<int> xs
@@ -135,6 +142,13 @@ module BoxedSeqTest =
     let xs = seq { 1..3 } |> box
     let actual = (typeof<int seq>, xs) ||> RuntimeSeq.map (fun x -> string x)
     do! actual |> should equalSeq (Seq.ofList [ "1"; "2"; "3" ])
+  }
+
+module RuntimeArrayMapTest =
+  let ``test toSeq`` = test {
+    let arrayMap = ArrayMap.ofList [ ("a", 1); ("b", 2) ]
+    let actual = RuntimeArrayMap.toSeq typeof<ArrayMap<string, int>> arrayMap
+    do! actual |> should equalSeq [ (box "a", box 1); (box "b", box 2) ]
   }
 
 module BoxedMapTest =
