@@ -75,7 +75,7 @@ let rec intermediateToYamlDotNet (yaml: YamlObject) =
   | Mapping (mapping, _) ->
     let children =
       mapping
-      |> Seq.map (fun (k, v) ->
+      |> Seq.map (fun (KeyValue (k, v)) ->
         let key = intermediateToYamlDotNet k
         let value = intermediateToYamlDotNet v
         KeyValuePair(key, value)
