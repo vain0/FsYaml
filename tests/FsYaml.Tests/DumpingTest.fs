@@ -115,6 +115,11 @@ module DumpTest =
     do! actual |> should equal (mapping [ (nonPlain "a", plain "1"); (nonPlain "b", plain "2") ])
   }
 
+  let ``ArrayMapを変換できる`` = test {
+    let actual = represent (ArrayMap.ofList [ ("a", 1); ("b", 2) ])
+    do! actual |> should equal (mapping [ (nonPlain "a", plain "1"); (nonPlain "b", plain "2") ])
+  }
+
   let ``Option.Someを変換できる`` = test {
     let actual = represent (Some "abc")
     do! actual |> should equal (nonPlain "abc")

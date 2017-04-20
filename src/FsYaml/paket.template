@@ -4,7 +4,7 @@ id
 owners
     vain0
 version
-    2.3.0
+    2.5.0
 authors
     bleis-tift, hafuu, vain0
 projectUrl
@@ -20,3 +20,5 @@ description
 dependencies
     FSharp.Configuration = 0.6.4
     YamlDotNet ~> 4.0 >= 4.1.0
+files
+    bin/Release/FsYaml.* ==> lib/net45

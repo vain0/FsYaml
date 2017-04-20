@@ -2,6 +2,7 @@
 
 open Microsoft.FSharp.Reflection
 open System
+open System.Collections.Generic
 open FsYaml.Utility
 open FsYaml.RepresentationTypes
 open FsYaml.NativeTypes
@@ -180,7 +181,7 @@ module internal Detail =
         let keyType, valueType = let ts = t.GetGenericArguments() in (ts.[0], ts.[1])
         let values =
           mapping
-          |> Seq.map (fun (keyYaml, valueYaml) ->
+          |> Seq.map (fun (KeyValue (keyYaml, valueYaml)) ->
             let key = construct' keyType keyYaml
             let value = construct' valueType valueYaml
             (key, value)
@@ -196,6 +197,41 @@ module internal Detail =
             match represent keyType key with
             | Scalar _ as s -> s
             | otherwise -> raise (FsYamlException.Create(Resources.getString "mapKeyMustBeScalar", Type.print t, YamlObject.nodeTypeName otherwise))
+          let value = represent valueType value
+          (key, value)
+        )
+        |> ArrayMap.ofSeq
+      Mapping (values, None)
+  }
+
+  let arrayMapDef = {
+    Accept = fun typ ->
+      typ.IsArray
+      && typ.GetElementType() |> isGenericTypeDef typedefof<KeyValuePair<_, _>>
+    Construct = fun construct' typ yaml ->
+      match yaml with
+      | Mapping (mapping, _) ->
+        let (keyType, valueType) =
+          let types = typ.GetElementType().GetGenericArguments()
+          (types.[0], types.[1])
+        let pairs =
+          mapping |> Seq.map
+            (fun (KeyValue (keyYaml, valueYaml)) ->
+              let keyObj = construct' keyType keyYaml
+              let valueObj = construct' valueType valueYaml
+              (keyObj, valueObj)
+            )
+        ObjectElementSeq.toArrayMap keyType valueType pairs
+      | otherwise -> raise (mustBeMapping typ otherwise)
+    Represent = fun represent typ obj ->
+      let (keyType, valueType) = RuntimeArrayMap.elementTypes typ
+      let values =
+        RuntimeArrayMap.toSeq typ obj
+        |> Seq.map (fun (key, value) ->
+          let key =
+            match represent keyType key with
+            | Scalar _ as s -> s
+            | keyYaml -> mustBeScalar keyType keyYaml |> raise
           let value = represent valueType value
           (key, value)
         )
@@ -374,4 +410,4 @@ module internal Detail =
 
 open Detail
 
-let internal defaultDefinitions = [ intDef; int64Def; floatDef; stringDef; boolDef; decimalDef; datetimeDef; timespanDef; recordDef; tupleDef; listDef; setDef; mapDef; arrayDef; seqDef; optionDef; unionDef ]
+let internal defaultDefinitions = [ intDef; int64Def; floatDef; stringDef; boolDef; decimalDef; datetimeDef; timespanDef; recordDef; tupleDef; listDef; setDef; mapDef; arrayMapDef; arrayDef; seqDef; optionDef; unionDef ]

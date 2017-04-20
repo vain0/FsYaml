@@ -14,7 +14,7 @@ let rec clearPosition = function
     let values = List.map clearPosition v
     Sequence (values, None)
   | Mapping (v, _) ->
-    let mapping = v |> Seq.map (fun (key, value) -> (clearPosition key, clearPosition value)) |> ArrayMap.ofSeq
+    let mapping = v |> Seq.map (fun (KeyValue (key, value)) -> (clearPosition key, clearPosition value)) |> ArrayMap.ofSeq
     Mapping (mapping, None)
   | Null _ -> Null None
 
@@ -233,6 +233,18 @@ module LoadTest =
     let yaml = "{}"
     let actual = Yaml.load<Map<string, int>> yaml
     do! actual |> should equal (Map.empty<string, int>)
+  }
+
+  let ArrayMapに変換できる = test {
+    let yaml = "{ a: 1, b: 2 }"
+    let actual = Yaml.load<ArrayMap<string, int>> yaml
+    do! actual |> should equal (ArrayMap.ofList [ ("a", 1); ("b", 2) ])
+  }
+
+  let 空のArrayMapに変換できる = test {
+    let yaml = "{}"
+    let actual = Yaml.load<ArrayMap<string, int>> yaml
+    do! actual |> should equal (ArrayMap.empty<string, int>)
   }
 
   let arrayに変換できる = test {
