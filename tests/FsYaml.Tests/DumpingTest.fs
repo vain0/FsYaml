@@ -42,7 +42,7 @@ module DumpTest =
       case (45.5, "45.5")
       run body
     }
-    
+
   let ``stringを変換できる`` = test {
     let actual = represent "this is text"
     do! actual |> should equal (nonPlain "this is text")
@@ -63,7 +63,7 @@ module DumpTest =
       case (false, "false")
       run body
     }
-    
+
   let ``decimalを変換できる`` = test {
     let actual = represent 30.5m
     do! actual |> should equal (plain "30.5")
@@ -129,7 +129,7 @@ module DumpTest =
     let actual = represent (None: int option)
     do! actual |> should equal null'
   }
-  
+
 module DumpRecordTest =
   open System
 

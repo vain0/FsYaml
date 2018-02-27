@@ -35,7 +35,7 @@ module internal Detail =
       | "n" | "no"  | "off" -> false
       | otherwise -> Boolean.Parse(otherwise))
     Represent = fun represent t obj ->
-      let text = unbox<bool> obj |> string |> String.toLower 
+      let text = unbox<bool> obj |> string |> String.toLower
       Scalar (Plain text, None)
   }
   let decimalDef = { Accept = (=)typeof<decimal>; Construct = constructFromScalar decimal; Represent = representAsPlain string }
@@ -279,7 +279,7 @@ module internal Detail =
     let tryNamedFieldCase construct' (union: UnionCaseInfo) (mapping: ArrayMap<YamlObject, YamlObject>) =
       let fields = union.GetFields()
       let yamls = fields |> Array.choose (fun field -> Mapping.tryFind field.Name mapping)
-        
+
       Seq.tryZip fields yamls
       |> Option.map (fun xs ->
         xs
@@ -376,7 +376,7 @@ module internal Detail =
         match values.Length with
         | 0 -> caseName union
         | 1 -> oneField represent union values.[0]
-        | _ -> manyFields represent union values 
+        | _ -> manyFields represent union values
 
   let unionDef = {
     Accept = fun t -> FSharpType.IsUnion(t)

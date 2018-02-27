@@ -57,7 +57,6 @@ module Type =
       match name.LastIndexOf("`") with
       | -1 -> name
       | x -> name.Substring(0, x)
-      
 
   let rec print (t: Type) =
     if t.IsArray then printArray t
@@ -101,7 +100,7 @@ module Attribute =
       None
     else
       Some (attr :?> 'a)
-      
+
 module PropertyInfo =
   open System.Reflection
 
@@ -186,7 +185,7 @@ module ObjectElementSeq =
     let parameterType = typedefof<seq<_>>.MakeGenericType(t)
     let constructor' = setType.GetConstructor([| parameterType |])
     constructor'.Invoke([| parameter |])
-    
+
   let toMap (keyType: Type) (valueType: Type) (xs: (obj * obj) seq) =
     let tupleType = typedefof<_ * _>.MakeGenericType([| keyType; valueType |])
     let parameter = xs |> Seq.map (fun (k, v) -> FSharpValue.MakeTuple([| k; v |], tupleType)) |> cast tupleType

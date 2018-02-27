@@ -54,7 +54,7 @@ let rec yamlDotNetToIntermediate (node: YamlNode) =
       |> ArrayMap.ofSeq
     Mapping(mapping, position)
   | notSupported -> raise (FsYamlException.WithPosition(position, Resources.getString "notSupportedNode", Type.print (notSupported.GetType())))
-    
+
 let parse = parseYaml >> yamlDotNetToIntermediate
 
 let rec intermediateToYamlDotNet (yaml: YamlObject) =
