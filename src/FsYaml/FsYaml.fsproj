@@ -2,6 +2,18 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Title>FsYaml (fork)</Title>
+    <PackageId>VainZero.FsYaml</PackageId>
+    <PackageVersion>2.6.0</PackageVersion>
+    <Description>
+      Type safe Yaml library for F#.
+    </Description>
+    <PackageTags>f# yaml serialize</PackageTags>
+    <RepositoryUrl>https://github.com/vain0/FsYaml.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/vain0/FsYaml</PackageProjectUrl>
+    <PackageLicenseUrl>http://github.com/bleis-tift/FsYaml/blob/master/LICENSE.txt</PackageLicenseUrl>
+    <Authors>bleis-tift; hafuu; (vain0)</Authors>
+    <IncludeSource>True</IncludeSource>
   </PropertyGroup>
 
   <ItemGroup>
