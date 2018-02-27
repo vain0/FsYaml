@@ -1,4 +1,4 @@
-﻿module DumpingTest
+module DumpingTest
 
 open Persimmon
 open UseTestNameByReflection

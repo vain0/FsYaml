@@ -1,4 +1,4 @@
-﻿module internal FsYaml.Utility
+module internal FsYaml.Utility
 
 open System.Collections.Generic
 

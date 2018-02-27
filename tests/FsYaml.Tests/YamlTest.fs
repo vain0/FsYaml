@@ -1,4 +1,4 @@
-﻿module YamlTest
+module YamlTest
 
 open Persimmon
 open UseTestNameByReflection

@@ -1,4 +1,4 @@
-﻿module LoadingTest
+module LoadingTest
 
 open Persimmon
 open UseTestNameByReflection

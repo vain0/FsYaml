@@ -1,4 +1,4 @@
-﻿module Assertions
+module Assertions
 
 open Persimmon
 open System

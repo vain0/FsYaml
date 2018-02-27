@@ -1,4 +1,4 @@
-﻿namespace FsYaml
+namespace FsYaml
 
 open System
 open Utility

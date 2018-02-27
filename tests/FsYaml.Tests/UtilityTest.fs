@@ -1,4 +1,4 @@
-﻿module UtilityTest
+module UtilityTest
 
 open FsYaml.Utility
 open Persimmon

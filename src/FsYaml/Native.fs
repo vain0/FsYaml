@@ -1,4 +1,4 @@
-﻿module internal FsYaml.Native
+module internal FsYaml.Native
 
 open FsYaml.Utility
 open FsYaml.NativeTypes

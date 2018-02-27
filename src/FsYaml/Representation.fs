@@ -1,4 +1,4 @@
-﻿module internal FsYaml.Representation
+module internal FsYaml.Representation
 
 open YamlDotNet.Core
 open YamlDotNet.RepresentationModel

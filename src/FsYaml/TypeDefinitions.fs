@@ -1,4 +1,4 @@
-﻿module FsYaml.TypeDefinitions
+module FsYaml.TypeDefinitions
 
 open Microsoft.FSharp.Reflection
 open System
