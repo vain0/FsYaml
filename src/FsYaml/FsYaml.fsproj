@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <Title>FsYaml (fork)</Title>
     <PackageId>VainZero.FsYaml</PackageId>
-    <PackageVersion>2.6.0</PackageVersion>
+    <PackageVersion>2.6.1</PackageVersion>
     <Description>
       Type safe Yaml library for F#.
     </Description>
