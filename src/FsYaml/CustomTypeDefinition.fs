@@ -1,4 +1,4 @@
-﻿/// <summary>
+/// <summary>
 /// ユーザ定義の<see cref="FsYaml.NativeTypes.TypeDefinition" />を作成するためのヘルパ関数を提供します。
 /// </summary>
 module FsYaml.CustomTypeDefinition

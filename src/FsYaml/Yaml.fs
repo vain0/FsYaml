@@ -1,4 +1,4 @@
-﻿/// <summary>
+/// <summary>
 /// オブジェクトとYamlの相互変換を提供します。
 /// </summary>
 /// <remarks>

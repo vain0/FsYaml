@@ -1,4 +1,4 @@
-﻿module TypesTest
+module TypesTest
 
 open Persimmon
 open UseTestNameByReflection

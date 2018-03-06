@@ -1,4 +1,4 @@
-﻿module YamlTest
+module YamlTest
 
 open Persimmon
 open UseTestNameByReflection
@@ -46,8 +46,7 @@ FieldD:
   FieldB:
     400: 200
     500: 250
-  FieldC: abcdefghijk
-"""
+  FieldC: abcdefghijk"""
   do! actual |> should equal expected
 }
 
